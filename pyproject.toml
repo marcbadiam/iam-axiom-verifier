@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iam-axiom-verifier"
+version = "0.1.0b1"
+description = "A Neuro-Symbolic Inference Engine for AWS Security & FinOps — combines LLM routing with Z3 SMT/ILP solvers for formal IAM verification and financial blast radius analysis."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [
+    {name = "Marc Bad"},
+]
+keywords = ["aws", "iam", "security", "formal-verification", "z3", "smt", "finops", "blast-radius"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: System :: Systems Administration",
+    "Typing :: Typed",
+]
+dependencies = [
+    "boto3>=1.34.0",
+    "z3-solver>=4.12.2",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "google-genai>=0.3.0",
+    "openai>=1.14.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/marcbadiam/iam-axiom-verifier"
+Repository = "https://github.com/marcbadiam/iam-axiom-verifier"
+Issues = "https://github.com/marcbadiam/iam-axiom-verifier/issues"
+
+[project.scripts]
+iam-axiom-verifier = "engine:main"
+
+[tool.setuptools]
+py-modules = ["engine"]
+packages = ["src", "src.aws", "src.core", "src.llm"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json"]

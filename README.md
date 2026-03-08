@@ -194,3 +194,39 @@ iam-axiom-verifier/
 | **AI Router** | Google GenAI SDK (`gemini-2.5-flash`) / OpenAI API |
 | **Data Contracts** | `pydantic` v2 |
 | **Environment** | `python-dotenv` |
+
+---
+
+## ⬇️ Installation
+
+Install the latest beta release from PyPI:
+
+```bash
+pip install --pre iam-axiom-verifier
+```
+
+> [!NOTE]
+> This package is currently in **beta**. The `--pre` flag is required to install pre-release versions.
+
+---
+
+## ⚖️ License
+
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for the full text.
+
+---
+
+## ⚠️ Disclaimer
+
+> [!CAUTION]
+> **USE AT YOUR OWN RISK.** This software is provided **"AS IS"**, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement. See the [MIT License](LICENSE) for full terms.
+
+**By using this software, you acknowledge and agree that:**
+
+1. **No Liability.** The authors and contributors are **not responsible** for any security breaches, financial losses, unexpected AWS charges, data loss, or any other damages arising from the use of this tool.
+
+2. **Principle of Least Privilege.** You **must always** follow the [principle of least privilege](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege) when configuring AWS credentials for this tool. Never grant more permissions than strictly necessary. Use the minimal read-only policy provided in [`docs/iam-axiom-readonly-policy.json`](docs/iam-axiom-readonly-policy.json).
+
+3. **Audit Before Use.** You are solely responsible for reviewing, understanding, and validating the code before deploying it in any environment. **Do not run this tool against production AWS accounts** without first auditing its behavior in a sandboxed environment.
+
+4. **Not a Substitute for Professional Security Audits.** This tool is intended as a **supplementary analysis aid** and does not replace a comprehensive security assessment performed by qualified professionals.
