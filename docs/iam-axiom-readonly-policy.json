@@ -1,0 +1,35 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AuditarPoliticasIAM",
+            "Effect": "Allow",
+            "Action": [
+                "iam:ListRoles",
+                "iam:GetRole",
+                "iam:GetRolePolicy",
+                "iam:ListRolePolicies",
+                "iam:ListAttachedRolePolicies",
+                "iam:ListInstanceProfilesForRole"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "ConsultarPreciosAWS",
+            "Effect": "Allow",
+            "Action": [
+                "pricing:GetProducts"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "ConsultarLimitesAWS",
+            "Effect": "Allow",
+            "Action": [
+                "servicequotas:GetServiceQuota",
+                "servicequotas:ListServiceQuotas"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

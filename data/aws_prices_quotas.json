@@ -1,29 +1,39 @@
 {
-  "global_vcpu_quota": 64,
-  "roles_info": {
-    "R_A": true,
-    "R_B": true
+  "global_vcpu_quota": 960,
+  "regional_quotas": {
+    "us-east-1": 960,
+    "eu-west-1": 128
   },
   "resources": [
     {
-        "id": "t3.micro",
-        "vcpu": 2,
-        "cost_per_hour": 0.0104
+      "id": "t3.micro",
+      "vcpu": 2,
+      "cost_per_hour": 0.0104,
+      "max_qty": 50
     },
     {
-        "id": "m5.large",
-        "vcpu": 2,
-        "cost_per_hour": 0.096
+      "id": "m5.large",
+      "vcpu": 2,
+      "cost_per_hour": 0.096,
+      "max_qty": 50
     },
     {
-        "id": "p3.8xlarge",
-        "vcpu": 32,
-        "cost_per_hour": 12.24
+      "id": "p4d.24xlarge",
+      "vcpu": 96,
+      "cost_per_hour": 32.77,
+      "max_qty": 10
     },
     {
-        "id": "x1e.32xlarge",
-        "vcpu": 128,
-        "cost_per_hour": 26.688
+      "id": "g5.48xlarge",
+      "vcpu": 192,
+      "cost_per_hour": 16.288,
+      "max_qty": 5
+    },
+    {
+      "id": "x1e.32xlarge",
+      "vcpu": 128,
+      "cost_per_hour": 26.688,
+      "max_qty": 5
     }
   ]
 }

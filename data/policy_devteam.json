@@ -1,16 +1,30 @@
 {
+  "RoleName": "DevTeam-Junior",
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "AllowLimitedEC2",
       "Effect": "Allow",
-      "Action": "ec2:RunInstances",
+      "Action": ["ec2:RunInstances", "ec2:DescribeInstances"],
       "Resource": "*",
       "Condition": {
         "StringEquals": {
           "aws:RequestedRegion": "us-east-1",
-          "ec2:InstanceType": ["t3.micro", "m5.large", "p3.8xlarge"]
+          "ec2:InstanceType": ["t3.micro", "m5.large"]
         }
       }
+    },
+    {
+      "Sid": "AllowRDSRead",
+      "Effect": "Allow",
+      "Action": ["rds:DescribeDBInstances", "rds:DescribeDBClusters"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ExplicitDenyDeleteDB",
+      "Effect": "Deny",
+      "Action": ["rds:DeleteDBInstance", "rds:DeleteDBCluster"],
+      "Resource": "*"
     }
   ]
 }
