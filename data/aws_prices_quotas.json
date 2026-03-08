@@ -1,0 +1,29 @@
+{
+  "global_vcpu_quota": 64,
+  "roles_info": {
+    "R_A": true,
+    "R_B": true
+  },
+  "resources": [
+    {
+        "id": "t3.micro",
+        "vcpu": 2,
+        "cost_per_hour": 0.0104
+    },
+    {
+        "id": "m5.large",
+        "vcpu": 2,
+        "cost_per_hour": 0.096
+    },
+    {
+        "id": "p3.8xlarge",
+        "vcpu": 32,
+        "cost_per_hour": 12.24
+    },
+    {
+        "id": "x1e.32xlarge",
+        "vcpu": 128,
+        "cost_per_hour": 26.688
+    }
+  ]
+}
