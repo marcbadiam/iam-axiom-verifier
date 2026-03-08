@@ -70,8 +70,10 @@ def verify_access(
 
     for stmt in statements:
         action_covered = any(_action_matches(a, target_action) for a in stmt.actions)
-        resource_covered = stmt.resource == "*" or stmt.resource == target_resource
-
+        resource_covered = any(
+            r == "*" or r.lower() == target_resource.lower() 
+            for r in stmt.resources
+        )
         if action_covered and resource_covered:
             if stmt.effect == "Allow":
                 has_allow = True

@@ -38,15 +38,15 @@ $$\sum_{i=1}^{n} (v_i \cdot x_i \cdot P_i) \le Q \quad \land \quad 0 \le x_i \le
 
 ## 🧠 Architecture (How it works)
 
-The system enforces a **strict boundary** between probabilistic reasoning (LLM) and deterministic execution (Z3). Furthermore, it is completely **offline and air-gapped**:
+The system enforces a **strict boundary** between probabilistic reasoning (LLM) and deterministic execution (Z3). Furthermore, it is completely **offline and air-gapped** from the AWS environment during the inference phase.
 
 ┌─────────────────────────────────────────────────────────────┐
 │                       User Question                         │
 └───────────────────────────┬─────────────────────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Layer 1: Intent (LLM)                                      │
-│  → Semantic Router: extracts role, action, intent           │
+│  Layer 1: Intent (LLM - Gemini / OpenAI)                    │
+│  → Semantic Router: extracts role, action, target resource  │
 │  → Pydantic validates strict JSON (LLMIntent)               │
 └───────────────────────────┬─────────────────────────────────┘
                             ▼
@@ -80,35 +80,40 @@ First, an auditor uses the standalone extraction tool. This connects to AWS via 
 python tools/sync_aws.py --profile axiom-auditor --regions us-east-1 eu-west-1
 
 
-### Step 2: Offline Mathematical Audit (Air-Gapped)
-Once the data is frozen, you run the engine. The engine does **not** connect to the internet or require AWS credentials. It strictly reads the local JSON state and applies mathematical proofs.
+### Step 2: Configure the LLM Router
+The engine is **provider-agnostic**. Copy the `.env.example` file to `.env` and configure your preferred AI provider (Google Gemini or OpenAI) to power the Semantic Router. You can also enable a `USE_MOCK_LLM="true"` mode for completely offline, air-gapped testing.
 
+### Step 3: Offline Mathematical Audit (Air-Gapped)
+Once the data is frozen and the router is configured, you run the engine. The math engine strictly reads the local JSON state and applies mathematical proofs.
+
+# Run the automated demonstration suite
 python engine.py demo
 
 
 ---
 
-## 💻 Usage Examples (Engine API)
+## 💻 Usage Examples (Interactive CLI)
 
-The package exposes a natural interface for the end user to query the offline data:
+The package exposes an interactive natural language interface. You can ask complex security questions, and the LLM will translate them into exact parameters for the Z3 SMT solver.
 
-from engine import VerifierEngine
+**CASE 1: Formal Access Verification (Specific ARNs)**
+You can query if a role has access to specific cloud resources:
 
-# The engine points to the frozen data directory, NOT an AWS profile
-engine = VerifierEngine(data_dir="./data")
+python engine.py ask "Can junior developers delete the instance arn:aws:ec2:us-east-1:123456789012:instance/i-prod999?"
 
-# CASE 1: Formal Access Verification
-result = engine.ask("Can junior developers delete the production database?")
-print(result.proof)
-# > ❌ UNSAT: Mathematically proven. The role 'DevTeam-Junior'
-# > has an explicit Deny on 'rds:DeleteDBInstance'.
+# > ❌ UNSAT: Mathematically proven. The role does not have any Allow 
+# > for 'ec2:TerminateInstances' on that specific ARN.
 
-# CASE 2: Financial Damage Optimization (Blast Radius)
-result = engine.ask("What is the financial blast radius if the data team is hacked?")
-print(result.proof)
-# > ⚠️ SAT (Max-Cost): Maximum damage is $45,200/day.
+
+**CASE 2: Financial Damage Optimization (Blast Radius)**
+Ask the engine to calculate the worst-case scenario if a role is compromised:
+
+python engine.py ask "If a hacker gets into the DataEng-Team account, what's the worst financial damage they can do?"
+
+# > ⚠️ SAT (Max-Cost): Maximum damage is $13,729/day ($572.04/hour).
 # > Optimal attack vector calculated by Z3:
-# > Launch 10x p4d.24xlarge instances (regional quota limit) in us-east-1.
+# >   → 15× g5.48xlarge ($244.32/h, 2880 vCPUs)
+# >   → 10× p4d.24xlarge ($327.72/h, 960 vCPUs)
 
 
 ---
@@ -124,6 +129,7 @@ The file docs/iam-axiom-readonly-policy.json contains the minimum necessary poli
 - **IAM Role Audit:** List roles, view role details, and read attached policies.
 - **Price Query:** Use the AWS Pricing service to obtain details about EC2 costs.
 - **Quota Query:** Review the account's service limits via Service Quotas.
+- **EC2 Metadata:** Describe instance types to dynamically fetch vCPU limits.
 
 **What it DOES NOT allow (Implicit restrictions):**
 - **No Modifying anything:** It has zero "Write" permissions. 
@@ -144,12 +150,12 @@ aws configure --profile axiom-auditor
 ## 📂 Project Structure
 
 iam-axiom-verifier/
-├── .env.example                 # Template for API Keys (OpenAI/Anthropic)
+├── .env.example                 # Template for API Keys (Google Gemini / OpenAI)
 ├── .gitignore                   # Ignores /venv, __pycache__, .env and local caches
 ├── LICENSE                      # Project license
 ├── README.md                    # Main documentation
-├── requirements.txt             # Strict dependencies (boto3, z3-solver, pydantic)
-├── engine.py                    # Entrypoint: Offline Inference Engine
+├── requirements.txt             # Strict dependencies
+├── engine.py                    # Entrypoint: Offline Inference Engine & CLI
 │
 ├── tools/                       # Utilities requiring internet/credentials
 │   └── sync_aws.py              # Connects to AWS & freezes state to /data
@@ -185,5 +191,6 @@ iam-axiom-verifier/
 |---|---|
 | **Logic Core** | `z3-solver` (Microsoft Research) |
 | **Cloud Integration** | `boto3` (AWS SDK) |
-| **AI Router** | OpenAI API / Anthropic API |
+| **AI Router** | Google GenAI SDK (`gemini-2.5-flash`) / OpenAI API |
 | **Data Contracts** | `pydantic` v2 |
+| **Environment** | `python-dotenv` |

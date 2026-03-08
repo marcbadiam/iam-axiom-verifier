@@ -13,6 +13,10 @@ Usage:
 """
 
 import sys
+import json
+from dotenv import load_dotenv
+
+load_dotenv()
 from src.models import IntentType, LLMIntent, VerifierResult
 from src.llm.router import translate_query
 from src.aws.parser import (
