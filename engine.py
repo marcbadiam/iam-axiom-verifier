@@ -116,10 +116,43 @@ class VerifierEngine:
 
         return result
 
-# --- CLI DEMONSTRATION ---
+# ==========================================
+# CLI / ENTRYPOINT
+# ==========================================
+
+def _run_demo(engine: VerifierEngine):
+    """Executes the pre-configured demonstration for both modules."""
+    
+    # --- Demo 1: Formal Access Verification ---
+    print("\n" + "#" * 60)
+    print("  DEMO 1: Formal Access Verification (SAT Solver)")
+    print("#" * 60)
+
+    r1 = engine.ask("Can junior developers delete the production database?")
+    print(f"\n  Result: \n{r1.proof}")
+
+    # --- Demo 2: Financial Blast Radius ---
+    print("\n" + "#" * 60)
+    print("  DEMO 2: Financial Blast Radius Optimization (ILP)")
+    print("#" * 60)
+
+    r2 = engine.ask("What is the financial blast radius if the data team is hacked?")
+    print(f"\n  Result:\n{r2.proof}")
+
+    # --- Summary ---
+    print("\n" + "=" * 60)
+    print("  Audit Summary")
+    print("=" * 60)
+    print(f"  Module 1 (Access):       {r1.status.upper()}")
+    print(f"  Module 2 (Blast Radius): {r2.status.upper()}")
+    
+    if r2.raw_model and "max_damage_per_day" in r2.raw_model:
+        print(f"  Max estimated damage:    ${r2.raw_model['max_damage_per_day']:,.0f}/day")
+    print("=" * 60)
+
 
 def main():
-    """CLI entry point. Runs a demonstration of both modules with local data."""
+    """CLI entry point with subcommands."""
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -131,36 +164,29 @@ def main():
         default="./data",
         help="Directory containing local AWS JSON fixtures"
     )
+    
+    # Create subcommands
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+    
+    # Command: demo
+    subparsers.add_parser("demo", help="Run the demonstration with local mock data")
+    
+    # Command: ask
+    ask_parser = subparsers.add_parser("ask", help="Ask a custom natural language query")
+    ask_parser.add_argument("query", type=str, help="The query in plain text")
+
     args = parser.parse_args()
 
+    # Initialize the core engine
     engine = VerifierEngine(data_dir=args.data_dir)
 
-    # --- Demo 1: Formal Access Verification ---
-    print("\n" + "#" * 60)
-    print("  DEMO 1: Formal Access Verification (SAT Solver)")
-    print("#" * 60)
-
-    r1 = engine.ask("Can junior developers delete the production database?")
-    print(f"\n  Result: {r1.proof}")
-
-    # --- Demo 2: Financial Blast Radius ---
-    print("\n" + "#" * 60)
-    print("  DEMO 2: Financial Blast Radius Optimization (ILP)")
-    print("#" * 60)
-
-    r2 = engine.ask("What is the financial blast radius if the data team is hacked?")
-    print(f"\n  Result:\n  {r2.proof}")
-
-    # --- Summary ---
-    print("\n" + "=" * 60)
-    print("  Audit Summary")
-    print("=" * 60)
-    print(f"  Module 1 (Access):       {r1.status.upper()}")
-    print(f"  Module 2 (Blast Radius): {r2.status.upper()}")
-    
-    if r2.raw_model and r2.raw_model.get("max_damage_per_day"):
-        print(f"  Max estimated damage:    ${r2.raw_model['max_damage_per_day']:,.0f}/day")
-    print("=" * 60)
+    # Route the CLI command
+    if args.command == "ask":
+        result = engine.ask(args.query)
+        print(f"\n  Final Proof:\n{result.proof}")
+    else:
+        # Default to demo if 'demo' is typed, or if no command is provided
+        _run_demo(engine)
 
 if __name__ == "__main__":
     main()

@@ -1,88 +1,88 @@
 """
-llm_translator.py — Semantic Router (Intent Layer)
+src/llm/router.py
 
-The LLM acts ONLY as an intent classifier.
-It does not reason about permissions or costs — Z3 does that.
-
-In production: OpenAI / Anthropic with Structured Outputs (Pydantic).
-In this repository: deterministic mock to connect with the formal engine.
+Semantic Router (Intent Layer).
+Connects to OpenAI (via Structured Outputs) or falls back to a deterministic mock.
 """
 
 import os
+import time
 from src.models import LLMIntent, IntentType
 
+# ==========================================
+# LLM CONFIGURATION
+# ==========================================
+# Allows the user to choose which environment variable to read (Defaults to OPENAI_API_KEY)
+API_KEY_ENV_NAME = os.getenv("LLM_API_KEY_VAR_NAME", "OPENAI_API_KEY")
+API_KEY = os.getenv(API_KEY_ENV_NAME)
+
+# Safety kill-switch: Allows forcing the Mock mode via environment variable
+USE_MOCK = os.getenv("USE_MOCK_LLM", "true").lower() == "true"
 
 def translate_query(query: str) -> LLMIntent:
     """
-    Receives the user's query in natural language.
-    Uses an LLM (Structured Outputs) to return the validated JSON
-    with the semantic intent and search parameters.
+    Routes the natural language query to the correct mathematical module.
+    """
+    print(f"  [LLM] Classifying intent for: '{query}'...")
 
-    In production, this would use the OpenAI API:
-    ---------------------------------------------
-    from openai import OpenAI
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    # If the user wants to use the real API and the key is configured
+    if not USE_MOCK and API_KEY:
+        return _call_real_llm(query)
+    else:
+        return _call_mock_llm(query)
+
+def _call_real_llm(query: str) -> LLMIntent:
+    """Production mode: Uses OpenAI Structured Outputs to guarantee the Pydantic schema."""
+    try:
+        from openai import OpenAI
+    except ImportError:
+        raise ImportError("Please run: pip install openai")
+
+    print(f"  [LLM] 🌐 Calling OpenAI API (using env var: {API_KEY_ENV_NAME})...")
+    
+    client = OpenAI(api_key=API_KEY)
+    
     completion = client.beta.chat.completions.parse(
-        model="gpt-4o",
+        model="gpt-4o-mini", # Using the mini model for speed and cost-efficiency
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {
+                "role": "system", 
+                "content": (
+                    "You are a cloud security semantic router. Analyze the user's query "
+                    "and extract the target IAM role, the AWS action (if any), and "
+                    "determine if the intent is ACCESS_VERIFICATION or BLAST_RADIUS."
+                )
+            },
             {"role": "user", "content": query}
         ],
         response_format=LLMIntent,
     )
+    
     return completion.choices[0].message.parsed
-    ---------------------------------------------
 
-    Or the Anthropic API:
-    ---------------------------------------------
-    import anthropic
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        messages=[{"role": "user", "content": query}],
-    )
-    return LLMIntent.model_validate_json(message.content[0].text)
-    ---------------------------------------------
-    """
+def _call_mock_llm(query: str) -> LLMIntent:
+    """Fallback mode: Deterministic keyword routing for testing without costs."""
+    print("  [LLM] 🧪 Using local deterministic mock (No API costs).")
+    time.sleep(0.8) # Simulate network delay
 
-    print(f"  [LLM] Classifying intent for: '{query}'")
-
-    # --- Mock: Intent detection by keywords ---
     query_lower = query.lower()
-
-    # Keywords for each module
-    blast_keywords = ["blast radius", "financial damage", "maximum cost",
-                      "hack", "compromise", "financial", "max damage", "cost"]
-    access_keywords = ["can", "access", "delete", "remove", "permission"]
-
-    # Detect intent
+    blast_keywords = ["blast radius", "financial damage", "maximum cost", "hack", "cost"]
+    
     is_blast = any(kw in query_lower for kw in blast_keywords)
-    is_access = any(kw in query_lower for kw in access_keywords)
 
-    if is_blast and not is_access:
-        intent = IntentType.BLAST_RADIUS
-    elif is_access and not is_blast:
-        intent = IntentType.ACCESS_VERIFICATION
-    elif is_blast:
-        # If there is ambiguity, blast radius wins when financial keywords are present
-        intent = IntentType.BLAST_RADIUS
-    else:
-        intent = IntentType.ACCESS_VERIFICATION
-
-    # --- Mock: Parameter extraction based on intent ---
-    if intent == IntentType.ACCESS_VERIFICATION:
-        return LLMIntent(
-            intent=IntentType.ACCESS_VERIFICATION,
-            target_role="DevTeam-Junior",
-            target_action="rds:DeleteDBInstance",
-            target_resource="*",
-            target_regions=["us-east-1"],
-        )
-    else:
+    if is_blast:
         return LLMIntent(
             intent=IntentType.BLAST_RADIUS,
             target_role="DataEng-Team",
             target_action=None,
             target_resource=None,
+            target_regions=["us-east-1"],
+        )
+    else:
+        return LLMIntent(
+            intent=IntentType.ACCESS_VERIFICATION,
+            target_role="DevTeam-Junior",
+            target_action="rds:DeleteDBInstance",
+            target_resource="*",
             target_regions=["us-east-1"],
         )

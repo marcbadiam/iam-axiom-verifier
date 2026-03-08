@@ -1,23 +1,46 @@
 {
-    "global_vcpu_quota": 512,
-    "resources": [
-        {
-            "id": "p4d.24xlarge",
-            "cost_per_hour": 32.77,
-            "vcpu": 96,
-            "max_qty": 5
-        },
-        {
-            "id": "p3dn.24xlarge",
-            "cost_per_hour": 31.22,
-            "vcpu": 96,
-            "max_qty": 5
-        },
-        {
-            "id": "m5.large",
-            "cost_per_hour": 0.096,
-            "vcpu": 2,
-            "max_qty": 100
-        }
+  "global_vcpu_quota": 5,
+  "regional_quotas": {
+    "us-east-1": 5,
+    "eu-west-1": 5
+  },
+  "resources": [
+    {
+      "id": "t3.micro",
+      "vcpu": 2,
+      "cost_per_hour": 0.0104,
+      "max_qty": 10
+    },
+    {
+      "id": "m5.large",
+      "vcpu": 2,
+      "cost_per_hour": 0.096,
+      "max_qty": 10
+    },
+    {
+      "id": "c5.xlarge",
+      "vcpu": 4,
+      "cost_per_hour": 0.17,
+      "max_qty": 10
+    },
+    {
+      "id": "p4d.24xlarge",
+      "vcpu": 96,
+      "cost_per_hour": 21.9576,
+      "max_qty": 10
+    },
+    {
+      "id": "g5.48xlarge",
+      "vcpu": 192,
+      "cost_per_hour": 16.288,
+      "max_qty": 10
+    }
+  ],
+  "_metadata": {
+    "source": "AWS Pricing + Quotas API",
+    "regions_queried": [
+      "us-east-1",
+      "eu-west-1"
     ]
+  }
 }

@@ -2,7 +2,7 @@
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "AuditIAMPolicies",
+            "Sid": "AuditarPoliticasIAM",
             "Effect": "Allow",
             "Action": [
                 "iam:ListRoles",
@@ -10,6 +10,7 @@
                 "iam:GetRolePolicy",
                 "iam:ListRolePolicies",
                 "iam:ListAttachedRolePolicies",
+                "iam:ListInstanceProfiles",
                 "iam:ListInstanceProfilesForRole"
             ],
             "Resource": "*"

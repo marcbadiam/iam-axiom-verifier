@@ -1,20 +1,21 @@
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "AllowReadRDS",
-            "Effect": "Allow",
-            "Action": [
-                "rds:Describe*",
-                "rds:List*"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Sid": "DenyDeleteRDS",
-            "Effect": "Deny",
-            "Action": "rds:DeleteDBInstance",
-            "Resource": "*"
-        }
-    ]
+    "RoleName": "DevTeam-Junior",
+    "PolicyName": "Tier1-Support-Policy",
+    "PolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "ReadOnlyTroubleshooting",
+                "Effect": "Allow",
+                "Action": ["ec2:Describe*", "rds:Describe*", "s3:List*"],
+                "Resource": "*"
+            },
+            {
+                "Sid": "PreventProdDatabaseDeletion",
+                "Effect": "Deny",
+                "Action": ["rds:DeleteDBInstance", "rds:DropDBCluster"],
+                "Resource": "arn:aws:rds:eu-west-1:849271630091:db:payment-prod-db"
+            }
+        ]
+    }
 }

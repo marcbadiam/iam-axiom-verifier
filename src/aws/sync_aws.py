@@ -17,7 +17,7 @@ import os
 # Adjust path so it can be run from the project root
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.aws.fetcher import sync_aws_data
+from fetcher import sync_aws_data
 
 def main():
     parser = argparse.ArgumentParser(
