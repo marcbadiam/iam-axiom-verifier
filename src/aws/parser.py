@@ -1,12 +1,12 @@
 """
-parser.py — Capa Determinista (AWS Fetcher)
+parser.py — Deterministic Layer (AWS Fetcher)
 
-En producción: boto3 descarga las políticas IAM reales y Service Quotas.
-En este repositorio: carga los archivos JSON mock de data/.
+In production: boto3 downloads the actual IAM policies and Service Quotas.
+In this repository: loads mock JSON files from data/.
 
-Funciones:
-  - fetch_iam_policy(role_name)       → dict (JSON de política IAM)
-  - fetch_prices_and_quotas()         → dict (precios y cuotas)
+Functions:
+  - fetch_iam_policy(role_name)       → dict (IAM policy JSON)
+  - fetch_prices_and_quotas()         → dict (prices and quotas)
   - parse_policy_statements(policy)   → List[PolicyStatement]
   - parse_resources(prices, allowed)  → List[ResourceData], global_quota
 """
@@ -16,10 +16,10 @@ import os
 from typing import Dict, Any, List, Tuple, Optional
 from src.models import PolicyStatement, ResourceData
 
-# Directorio de datos mock
+# Mock data directory
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data")
 
-# Mapeo de nombres de rol a archivos de política mock
+# Mapping of role names to mock policy files
 ROLE_POLICY_MAP = {
     "DevTeam-Junior": "policy_devteam.json",
     "DataEng-Team": "policy_dataeng.json",
@@ -27,56 +27,56 @@ ROLE_POLICY_MAP = {
 
 
 def _load_json(filepath: str) -> Dict[str, Any]:
-    """Carga un archivo JSON desde disco."""
+    """Loads a JSON file from disk."""
     with open(filepath, 'r') as f:
         return json.load(f)
 
 
 def fetch_iam_policy(role_name: str) -> Dict[str, Any]:
     """
-    Descarga la política IAM de un rol.
+    Downloads the IAM policy for a role.
 
-    En producción:
-    ──────────────
+    In production:
+    --------------
     import boto3
     iam = boto3.client('iam', region_name='us-east-1')
     policies = iam.list_attached_role_policies(RoleName=role_name)
-    # ... descargar y combinar todos los PolicyDocuments ...
+    # ... download and combine all PolicyDocuments ...
 
-    Mock: Carga el archivo JSON correspondiente al rol.
+    Mock: Loads the corresponding JSON file for the role.
     """
     filename = ROLE_POLICY_MAP.get(role_name)
     if not filename:
-        raise ValueError(f"Rol desconocido: '{role_name}'. Roles disponibles: {list(ROLE_POLICY_MAP.keys())}")
+        raise ValueError(f"Unknown role: '{role_name}'. Available roles: {list(ROLE_POLICY_MAP.keys())}")
 
     filepath = os.path.join(DATA_DIR, filename)
-    print(f"  [AWS] Cargando política IAM para '{role_name}' desde {filename}")
+    print(f"  [AWS] Loading IAM policy for '{role_name}' from {filename}")
     return _load_json(filepath)
 
 
 def fetch_prices_and_quotas() -> Dict[str, Any]:
     """
-    Descarga los precios públicos y Service Quotas de AWS.
+    Downloads public prices and AWS Service Quotas.
 
-    En producción:
-    ──────────────
+    In production:
+    --------------
     import boto3
     pricing = boto3.client('pricing', region_name='us-east-1')
     quotas = boto3.client('service-quotas', region_name='us-east-1')
-    # ... consultar precios de instancias EC2 ...
-    # ... consultar límite de vCPUs on-demand ...
+    # ... query EC2 instance prices ...
+    # ... query on-demand vCPU limits ...
 
-    Mock: Carga aws_prices_quotas.json.
+    Mock: Loads aws_prices_quotas.json.
     """
     filepath = os.path.join(DATA_DIR, "aws_prices_quotas.json")
-    print(f"  [AWS] Cargando precios y cuotas desde aws_prices_quotas.json")
+    print(f"  [AWS] Loading prices and quotas from aws_prices_quotas.json")
     return _load_json(filepath)
 
 
 def parse_policy_statements(policy: Dict[str, Any]) -> List[PolicyStatement]:
     """
-    Convierte los Statement de una IAM Policy a objetos tipados PolicyStatement.
-    Normaliza Action a lista si viene como string.
+    Converts IAM Policy Statements to typed PolicyStatement objects.
+    Normalizes Action to a list if it comes as a string.
     """
     statements = []
     for stmt in policy.get("Statement", []):
@@ -100,17 +100,17 @@ def parse_resources(
     allowed_instances: List[str],
 ) -> Tuple[List[ResourceData], int]:
     """
-    Cruza el catálogo de precios con los tipos de instancia permitidos por IAM.
+    Cross-references the price catalog with the instance types allowed by IAM.
 
-    Retorna:
-      - Lista de ResourceData con el flag 'allowed' calculado
-      - Cuota global de vCPUs
+    Returns:
+      - List of ResourceData with the calculated 'allowed' flag
+      - Global vCPU quota
     """
     global_quota = prices_data.get("global_vcpu_quota", 64)
 
     resources = []
     for res in prices_data.get("resources", []):
-        # P_i = 1 si el tipo está en la lista permitida, 0 si no
+        # allowed = True if the type is in the allowed list, False otherwise
         allowed = res["id"] in allowed_instances or "*" in allowed_instances
         resources.append(ResourceData(
             id=res["id"],
@@ -125,8 +125,8 @@ def parse_resources(
 
 def extract_allowed_instances(policy: Dict[str, Any]) -> List[str]:
     """
-    Extrae los tipos de instancia EC2 permitidos mirando las condiciones
-    de ec2:RunInstances en los statements Allow.
+    Extracts allowed EC2 instance types by looking at ec2:RunInstances conditions
+    in the Allow statements.
     """
     allowed = []
     for stmt in policy.get("Statement", []):

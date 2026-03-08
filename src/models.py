@@ -1,8 +1,8 @@
 """
-models.py — Contratos de Datos (Pydantic v2)
+models.py — Data Contracts (Pydantic v2)
 
-Define todas las estructuras tipadas que fluyen entre las capas
-del motor neuro-simbólico.
+Defines all typed structures that flow between the layers
+of the neuro-symbolic engine.
 """
 
 from enum import Enum
@@ -10,30 +10,30 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 
-# ─── Capa de Intención (LLM Router) ─────────────────────────────────
+# --- Intent Layer (LLM Router) ---
 
 class IntentType(str, Enum):
-    """Tipo de análisis solicitado por el usuario."""
+    """Type of analysis requested by the user."""
     ACCESS_VERIFICATION = "access_verification"
     BLAST_RADIUS = "blast_radius"
 
 
 class LLMIntent(BaseModel):
     """
-    Salida validada del Enrutador Semántico (LLM).
-    Pydantic garantiza un contrato JSON estricto.
+    Validated output from the Semantic Router (LLM).
+    Pydantic ensures a strict JSON contract.
     """
     intent: IntentType
-    target_role: str = Field(..., description="Rol IAM objetivo (ej: DevTeam-Junior)")
-    target_action: Optional[str] = Field(None, description="Acción AWS a verificar (ej: rds:DeleteDBInstance)")
-    target_resource: Optional[str] = Field(None, description="ARN del recurso objetivo (ej: *)")
+    target_role: str = Field(..., description="Target IAM role (e.g., DevTeam-Junior)")
+    target_action: Optional[str] = Field(None, description="AWS action to verify (e.g., rds:DeleteDBInstance)")
+    target_resource: Optional[str] = Field(None, description="Target resource ARN (e.g., *)")
     target_regions: List[str] = Field(default_factory=lambda: ["us-east-1"])
 
 
-# ─── Capa Determinista (AWS Fetcher) ────────────────────────────────
+# --- Deterministic Layer (AWS Fetcher) ---
 
 class PolicyStatement(BaseModel):
-    """Espejo tipado de un Statement de IAM Policy."""
+    """Typed mirror of an IAM Policy Statement."""
     sid: Optional[str] = None
     effect: str  # "Allow" | "Deny"
     actions: List[str]
@@ -42,7 +42,7 @@ class PolicyStatement(BaseModel):
 
 
 class ResourceData(BaseModel):
-    """Recurso AWS con su coste, vCPU y si está permitido por IAM."""
+    """AWS resource with its cost, vCPU, and if it is allowed by IAM."""
     id: str
     cost_per_hour: float
     vcpu_cost: int
@@ -50,14 +50,14 @@ class ResourceData(BaseModel):
     allowed: bool = True
 
 
-# ─── Capa de Inferencia (Resultado Unificado) ───────────────────────
+# --- Inference Layer (Unified Result) ---
 
 class VerifierResult(BaseModel):
     """
-    Resultado unificado de ambos módulos del motor.
+    Unified result from both engine modules.
     - status: 'sat' | 'unsat'
-    - proof: Explicación legible para humanos
-    - raw_model: Datos crudos del modelo Z3
+    - proof: Human-readable explanation
+    - raw_model: Raw data from the Z3 model
     """
     status: str
     proof: str

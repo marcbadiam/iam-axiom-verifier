@@ -1,11 +1,11 @@
 """
-llm_translator.py — Enrutador Semántico (Capa de Intención)
+llm_translator.py — Semantic Router (Intent Layer)
 
-El LLM actúa ÚNICAMENTE como clasificador de intención.
-No razona sobre permisos ni costes — eso lo hace Z3.
+The LLM acts ONLY as an intent classifier.
+It does not reason about permissions or costs — Z3 does that.
 
-En producción: OpenAI / Anthropic con Structured Outputs (Pydantic).
-En este repositorio: mock determinista para conectar con el motor formal.
+In production: OpenAI / Anthropic with Structured Outputs (Pydantic).
+In this repository: deterministic mock to connect with the formal engine.
 """
 
 import os
@@ -14,12 +14,12 @@ from src.models import LLMIntent, IntentType
 
 def translate_query(query: str) -> LLMIntent:
     """
-    Recibe la consulta del usuario en lenguaje natural.
-    Utiliza un LLM (Structured Outputs) para devolver el JSON validado
-    con la intención semántica y los parámetros de la búsqueda.
+    Receives the user's query in natural language.
+    Uses an LLM (Structured Outputs) to return the validated JSON
+    with the semantic intent and search parameters.
 
-    En producción, esto usaría la API de OpenAI:
-    ─────────────────────────────────────────────
+    In production, this would use the OpenAI API:
+    ---------------------------------------------
     from openai import OpenAI
     client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
     completion = client.beta.chat.completions.parse(
@@ -31,10 +31,10 @@ def translate_query(query: str) -> LLMIntent:
         response_format=LLMIntent,
     )
     return completion.choices[0].message.parsed
-    ─────────────────────────────────────────────
+    ---------------------------------------------
 
-    O la API de Anthropic:
-    ─────────────────────────────────────────────
+    Or the Anthropic API:
+    ---------------------------------------------
     import anthropic
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     message = client.messages.create(
@@ -42,22 +42,20 @@ def translate_query(query: str) -> LLMIntent:
         messages=[{"role": "user", "content": query}],
     )
     return LLMIntent.model_validate_json(message.content[0].text)
-    ─────────────────────────────────────────────
+    ---------------------------------------------
     """
 
-    print(f"  [LLM] Clasificando intención para: '{query}'")
+    print(f"  [LLM] Classifying intent for: '{query}'")
 
-    # ── Mock: Detección de intención por palabras clave ──────────
+    # --- Mock: Intent detection by keywords ---
     query_lower = query.lower()
 
-    # Palabras clave para cada módulo
-    blast_keywords = ["radio de explosión", "blast radius", "daño financiero",
-                      "coste máximo", "hackean", "compromet", "financiero",
-                      "max damage", "cost"]
-    access_keywords = ["pueden", "puede", "acceso", "borrar", "eliminar",
-                       "delete", "access", "permiso", "permission"]
+    # Keywords for each module
+    blast_keywords = ["blast radius", "financial damage", "maximum cost",
+                      "hack", "compromise", "financial", "max damage", "cost"]
+    access_keywords = ["can", "access", "delete", "remove", "permission"]
 
-    # Detectar intención
+    # Detect intent
     is_blast = any(kw in query_lower for kw in blast_keywords)
     is_access = any(kw in query_lower for kw in access_keywords)
 
@@ -66,12 +64,12 @@ def translate_query(query: str) -> LLMIntent:
     elif is_access and not is_blast:
         intent = IntentType.ACCESS_VERIFICATION
     elif is_blast:
-        # Si hay ambigüedad, blast radius gana cuando hay keywords financieros
+        # If there is ambiguity, blast radius wins when financial keywords are present
         intent = IntentType.BLAST_RADIUS
     else:
         intent = IntentType.ACCESS_VERIFICATION
 
-    # ── Mock: Extracción de parámetros según intención ───────────
+    # --- Mock: Parameter extraction based on intent ---
     if intent == IntentType.ACCESS_VERIFICATION:
         return LLMIntent(
             intent=IntentType.ACCESS_VERIFICATION,

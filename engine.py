@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-engine.py — VerifierEngine (Fachada Principal)
+engine.py — VerifierEngine (Main Facade)
 
-Motor Neuro-Simbólico "2 en 1" para auditoría AWS.
-Orquesta las 4 capas: Intención (LLM) → Fetcher (AWS) → Compilación (IAM→SMT) → Inferencia (Z3).
+Neuro-Symbolic Engine "2-in-1" for AWS auditing.
+Orchestrates the 4 layers: Intent (LLM) → Fetcher (AWS) → Compilation (IAM→SMT) → Inference (Z3).
 
-Uso:
+Usage:
     from engine import VerifierEngine
-    engine = VerifierEngine(aws_profile="produccion")
-    resultado = engine.ask("¿Pueden los devs junior borrar la BD?")
-    print(resultado.proof)
+    engine = VerifierEngine(aws_profile="production")
+    result = engine.ask("Can junior devs delete the DB?")
+    print(result.proof)
 """
 
 import sys
@@ -28,46 +28,46 @@ from src.core.smt_solver import verify_access, optimize_blast_radius
 
 class VerifierEngine:
     """
-    Motor principal IAM Axiom Verifier.
+    Main IAM Axiom Verifier engine.
 
-    Combina:
-      - Módulo 1: Verificación Formal de Acceso (SAT Solver)
-      - Módulo 2: Optimización de Blast Radius Financiero (ILP Solver)
+    Combines:
+      - Module 1: Formal Access Verification (SAT Solver)
+      - Module 2: Financial Blast Radius Optimization (ILP Solver)
     """
 
     def __init__(self, aws_profile: str = "default"):
         """
-        Inicializa el motor.
+        Initializes the engine.
 
-        En producción, aws_profile configuraría boto3.Session(profile_name=...).
-        En modo mock, se ignora.
+        In production, aws_profile would configure boto3.Session(profile_name=...).
+        In mock mode, it is ignored.
         """
         self.aws_profile = aws_profile
-        print(f"🛡️  IAM Axiom Verifier inicializado (perfil: {aws_profile})")
+        print(f"IAM Axiom Verifier initialized (profile: {aws_profile})")
 
     def ask(self, query: str) -> VerifierResult:
         """
-        Punto de entrada principal.
-        Procesa una pregunta en lenguaje natural y devuelve un resultado formal.
+        Main entry point.
+        Processes a natural language query and returns a formal result.
         """
         print(f"\n{'='*60}")
-        print(f"  📝 Consulta: \"{query}\"")
+        print(f"  Query: \"{query}\"")
         print(f"{'='*60}")
 
-        # ── Capa 1: Intención (LLM Router) ──────────────────────
-        print(f"\n[Capa 1/4] 🧠 Enrutador Semántico (LLM)")
+        # --- Layer 1: Intent (LLM Router) ---
+        print(f"\n[Layer 1/4] Semantic Router (LLM)")
         intent = translate_query(query)
-        print(f"  → Intención: {intent.intent.value}")
-        print(f"  → Rol objetivo: {intent.target_role}")
+        print(f"  → Intent: {intent.intent.value}")
+        print(f"  → Target Role: {intent.target_role}")
         if intent.target_action:
-            print(f"  → Acción: {intent.target_action}")
-        print(f"  → Regiones: {intent.target_regions}")
+            print(f"  → Action: {intent.target_action}")
+        print(f"  → Regions: {intent.target_regions}")
 
-        # ── Capa 2: Fetcher Determinista (AWS) ──────────────────
-        print(f"\n[Capa 2/4] ☁️  Fetcher Determinista (AWS)")
+        # --- Layer 2: Deterministic Fetcher (AWS) ---
+        print(f"\n[Layer 2/4] Deterministic Fetcher (AWS)")
         policy = fetch_iam_policy(intent.target_role)
 
-        # ── Capa 3 & 4: Compilación + Inferencia ────────────────
+        # --- Layer 3 & 4: Compilation + Inference ---
         if intent.intent == IntentType.ACCESS_VERIFICATION:
             return self._run_access_verification(policy, intent)
         else:
@@ -76,15 +76,15 @@ class VerifierEngine:
     def _run_access_verification(
         self, policy: dict, intent: LLMIntent
     ) -> VerifierResult:
-        """Módulo 1: Verificación Formal de Acceso (SAT Solver)."""
+        """Module 1: Formal Access Verification (SAT Solver)."""
 
-        print(f"\n[Capa 3/4] 🔒 Compilación IAM → SMT (Verificación de Acceso)")
+        print(f"\n[Layer 3/4] IAM → SMT Compilation (Access Verification)")
         statements = parse_policy_statements(policy)
-        print(f"  → {len(statements)} statements parseados")
+        print(f"  → {len(statements)} statements parsed")
         for s in statements:
             print(f"    • [{s.effect}] {s.sid}: {s.actions}")
 
-        print(f"\n[Capa 4/4] ⚡ Inferencia Z3 (SAT Solver)")
+        print(f"\n[Layer 4/4] Z3 Inference (SAT Solver)")
         result = verify_access(
             statements=statements,
             target_action=intent.target_action or "",
@@ -96,26 +96,26 @@ class VerifierEngine:
     def _run_blast_radius(
         self, policy: dict, intent: LLMIntent
     ) -> VerifierResult:
-        """Módulo 2: Optimización de Blast Radius Financiero (ILP Solver)."""
+        """Module 2: Financial Blast Radius Optimization (ILP Solver)."""
 
-        print(f"\n[Capa 3/4] 💸 Compilación IAM → SMT (Blast Radius)")
+        print(f"\n[Layer 3/4] IAM → SMT Compilation (Blast Radius)")
 
-        # Obtener instancias permitidas por IAM
+        # Get instance types allowed by IAM
         allowed_instances = extract_allowed_instances(policy)
-        print(f"  → Instancias permitidas por IAM: {allowed_instances}")
+        print(f"  → IAM allowed instances: {allowed_instances}")
 
-        # Cruzar con catálogo de precios
+        # Cross-reference with price catalog
         prices_data = fetch_prices_and_quotas()
         resources, global_quota = parse_resources(prices_data, allowed_instances)
 
-        print(f"  → Cuota global: {global_quota} vCPUs")
-        print(f"  → Recursos procesados:")
+        print(f"  → Global quota: {global_quota} vCPUs")
+        print(f"  → Processed resources:")
         for res in resources:
-            status = "✓ Permitido" if res.allowed else "✗ Denegado"
+            status = "Allowed" if res.allowed else "Denied"
             print(f"    • {res.id:18} | {res.vcpu_cost:4} vCPU | "
-                  f"${res.cost_per_hour:8.4f}/h | máx {res.max_qty:3} | {status}")
+                  f"${res.cost_per_hour:8.4f}/h | max {res.max_qty:3} | {status}")
 
-        print(f"\n[Capa 4/4] ⚡ Inferencia Z3 (ILP Solver)")
+        print(f"\n[Layer 4/4] Z3 Inference (ILP Solver)")
         result = optimize_blast_radius(
             resources=resources,
             global_quota=global_quota,
@@ -124,46 +124,46 @@ class VerifierEngine:
         return result
 
 
-# ─── CLI ─────────────────────────────────────────────────────────────
+# --- CLI ---
 
 def _run_demo():
-    """Ejecuta una demostración de ambos módulos con datos locales."""
+    """Runs a demonstration of both modules with local data."""
 
-    engine = VerifierEngine(aws_profile="produccion")
+    engine = VerifierEngine(aws_profile="production")
 
-    # ── Demo 1: Verificación Formal de Acceso ────────────────────
-    print("\n" + "█" * 60)
-    print("  DEMO 1: Verificación Formal de Acceso (SAT Solver)")
-    print("█" * 60)
+    # --- Demo 1: Formal Access Verification ---
+    print("\n" + "#" * 60)
+    print("  DEMO 1: Formal Access Verification (SAT Solver)")
+    print("#" * 60)
 
     r1 = engine.ask(
-        "¿Pueden los desarrolladores junior borrar la base de datos de producción?"
+        "Can junior developers delete the production database?"
     )
-    print(f"\n  📋 Resultado: {r1.proof}")
+    print(f"\n  Result: {r1.proof}")
 
-    # ── Demo 2: Blast Radius Financiero ──────────────────────────
-    print("\n" + "█" * 60)
-    print("  DEMO 2: Optimización de Blast Radius Financiero (ILP)")
-    print("█" * 60)
+    # --- Demo 2: Financial Blast Radius ---
+    print("\n" + "#" * 60)
+    print("  DEMO 2: Financial Blast Radius Optimization (ILP)")
+    print("#" * 60)
 
     r2 = engine.ask(
-        "¿Cuál es el radio de explosión financiero si hackean al equipo de datos?"
+        "What is the financial blast radius if the data team is hacked?"
     )
-    print(f"\n  📋 Resultado:\n  {r2.proof}")
+    print(f"\n  Result:\n  {r2.proof}")
 
-    # ── Resumen ──────────────────────────────────────────────────
+    # --- Summary ---
     print("\n" + "=" * 60)
-    print("  🏁 Resumen de Auditoría")
+    print("  Audit Summary")
     print("=" * 60)
-    print(f"  Módulo 1 (Acceso):       {r1.status.upper()}")
-    print(f"  Módulo 2 (Blast Radius): {r2.status.upper()}")
+    print(f"  Module 1 (Access):       {r1.status.upper()}")
+    print(f"  Module 2 (Blast Radius): {r2.status.upper()}")
     if r2.raw_model and r2.raw_model.get("max_damage_per_day"):
-        print(f"  Daño máximo estimado:    ${r2.raw_model['max_damage_per_day']:,.0f}/día")
+        print(f"  Max estimated damage:    ${r2.raw_model['max_damage_per_day']:,.0f}/day")
     print("=" * 60)
 
 
 def _run_sync(args):
-    """Sincroniza datos reales desde AWS (Cache-Refresh)."""
+    """Synchronizes real data from AWS (Cache-Refresh)."""
     from src.aws.fetcher import sync_aws_data
 
     regions = args.regions if args.regions else ["us-east-1"]
@@ -176,36 +176,36 @@ def _run_sync(args):
 
 
 def main():
-    """Punto de entrada CLI con subcomandos."""
+    """CLI entry point with subcommands."""
     import argparse
 
     parser = argparse.ArgumentParser(
         prog="engine.py",
-        description="🛡️  IAM Axiom Verifier — Motor Neuro-Simbólico para AWS Security & FinOps",
+        description="IAM Axiom Verifier — Neuro-Symbolic Engine for AWS Security & FinOps",
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    # Subcomando: demo
+    # Subcommand: demo
     subparsers.add_parser(
         "demo",
-        help="Ejecutar la demostración con datos mock locales",
+        help="Run the demonstration with local mock data",
     )
 
-    # Subcomando: sync-aws-data
+    # Subcommand: sync-aws-data
     sync_parser = subparsers.add_parser(
         "sync-aws-data",
-        help="Sincronizar precios y cuotas reales desde AWS (Cache-Refresh)",
+        help="Synchronize real prices and quotas from AWS (Cache-Refresh)",
     )
     sync_parser.add_argument(
         "--regions",
         nargs="+",
         default=["us-east-1"],
-        help="Regiones AWS a consultar (default: us-east-1)",
+        help="AWS regions to query (default: us-east-1)",
     )
     sync_parser.add_argument(
         "--profile",
         default=None,
-        help="Perfil de AWS CLI a usar (default: default)",
+        help="AWS CLI profile to use (default: default)",
     )
 
     args = parser.parse_args()
@@ -215,7 +215,7 @@ def main():
     elif args.command == "demo":
         _run_demo()
     else:
-        # Sin subcomando: ejecutar demo por defecto
+        # No subcommand: run demo by default
         _run_demo()
 
 

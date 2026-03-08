@@ -1,196 +1,216 @@
-# 🛡️ IAM Axiom Verifier
+# IAM Axiom Verifier
 
 **A Neuro-Symbolic Inference Engine for AWS Security & FinOps**
 
-IAM Axiom Verifier es una herramienta de **auditoría matemática** para entornos AWS. Combina la flexibilidad de los Modelos de Lenguaje Grande (LLMs) para el enrutamiento semántico con el **rigor absoluto** de los solucionadores SMT (Verificación Formal) para evaluar políticas IAM.
+IAM Axiom Verifier is a **mathematical auditing** tool for AWS environments. It combines the flexibility of Large Language Models (LLMs) for semantic routing with the **absolute rigor** of SMT solvers (Formal Verification) to evaluate IAM policies.
 
-En lugar de confiar en expresiones regulares, heurísticas o alucinaciones de IA, este motor traduce el estado de AWS a un sistema de **inecuaciones y lógica booleana**, demostrando matemáticamente los vectores de riesgo.
-
----
-
-## 🚨 El Problema
-
-- **La IA alucina:** Los LLMs no pueden razonar de forma fiable sobre grafos de permisos complejos o cuotas de servicio. Un error en la auditoría de seguridad es **inaceptable**.
-
-- **Las calculadoras estáticas fallan:** Calcular el "Radio de Explosión" (Blast Radius) financiero de una credencial comprometida no es un simple sumatorio; es un problema de **optimización combinatoria (NP-Hard)** cruzado con restricciones de cuotas de AWS y lógica booleana de IAM.
+Instead of relying on regular expressions, heuristics, or AI hallucinations, this engine translates the AWS state into a system of **inequalities and boolean logic**, mathematically demonstrating risk vectors.
 
 ---
 
-## ✨ La Solución (Características Principales)
+## The Problem
 
-Este proyecto implementa una arquitectura **Neuro-Simbólica "2 en 1"**:
+- **AI Hallucinates:** LLMs cannot reliably reason about complex permission graphs or service quotas. An error in a security audit is **unacceptable**.
 
-### 🔒 Módulo 1: Verificador Formal de Accesos (SAT Solver)
+- **Static Calculators Fail:** Calculating the financial "Blast Radius" of a compromised credential is not a simple summation; it is a **combinatorial optimization problem (NP-Hard)** crossed with AWS quota constraints and IAM boolean logic.
 
-Traduce las políticas de AWS (Allows/Denies explícitos e implícitos) a **teoremas booleanos**. Demuestra si existe algún camino lógico para que un rol acceda a un recurso crítico.
+---
 
-La ecuación que Z3 evalúa:
+## The Solution (Key Features)
 
-```
-Permiso_Concedido = Hay_Allow AND NOT Hay_Deny_Explicito
-```
+This project implements a **"2-in-1" Neuro-Symbolic** architecture:
 
-### 💸 Módulo 2: Optimizador de Radio de Explosión Financiera (Max-SAT / ILP)
+### Module 1: Formal Access Verifier (SAT Solver)
 
-Cruza los permisos IAM con la API de precios y los Service Quotas de AWS. Utiliza **Programación Lineal Entera (ILP)** para encontrar la combinación exacta de instancias y regiones que el atacante usaría para infligir el daño económico máximo.
+Translates AWS policies (explicit and implicit Allows/Denies) into **boolean theorems**. It demonstrates if a logical path exists for a role to access a critical resource.
 
-La función objetivo:
+The equation evaluated by Z3:
 
 ```
-Maximizar: C = Σ(cost_i × x_i × P_i)
-Sujeto a:  Σ(vcpu_i × x_i × P_i) ≤ Q   ∧   0 ≤ x_i ≤ max_qty_i
+Permission_Granted = Has_Allow AND NOT Has_Explicit_Deny
+```
+
+### Module 2: Financial Blast Radius Optimizer (Max-SAT / ILP)
+
+Cross-references IAM permissions with the AWS Pricing API and Service Quotas. It uses **Integer Linear Programming (ILP)** to find the exact combination of instances and regions an attacker would use to inflict maximum economic damage.
+
+The objective function:
+
+```
+Maximize: C = Σ(cost_i × x_i × P_i)
+Subject to:  Σ(vcpu_i × x_i × P_i) ≤ Q   ∧   0 ≤ x_i ≤ max_qty_i
 ```
 
 ---
 
-## 🧠 Arquitectura (Cómo funciona)
+## Architecture (How it works)
 
-El sistema impone un **límite estricto** entre el razonamiento probabilístico (LLM) y la ejecución determinista (Z3):
+The system enforces a **strict boundary** between probabilistic reasoning (LLM) and deterministic execution (Z3):
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Pregunta del usuario                     │
+│                       User Question                         │
 └───────────────────────────┬─────────────────────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Capa 1: Intención (LLM)                                   │
-│  → Enrutador Semántico: extrae rol, acción, intención       │
-│  → Pydantic valida el JSON estricto (LLMIntent)             │
+│  Layer 1: Intent (LLM)                                      │
+│  → Semantic Router: extracts role, action, intent           │
+│  → Pydantic validates strict JSON (LLMIntent)               │
 └───────────────────────────┬─────────────────────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Capa 2: Fetcher Determinista (AWS / boto3)                 │
-│  → Descarga políticas IAM reales del rol                    │
-│  → Obtiene Service Quotas y precios públicos                │
+│  Layer 2: Deterministic Fetcher (AWS / boto3)                │
+│  → Downloads real IAM policies for the role                 │
+│  → Obtains Service Quotas and public prices                 │
 └───────────────────────────┬─────────────────────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Capa 3: Compilación (IAM → SMT)                           │
-│  → Parsea JSON de IAM a PolicyStatements tipados            │
-│  → Cruza permisos con catálogo de precios                   │
+│  Layer 3: Compilation (IAM → SMT)                           │
+│  → Parses IAM JSON to typed PolicyStatements                │
+│  → Cross-references permissions with price catalog          │
 └──────────┬────────────────────────────────────┬─────────────┘
            ▼                                    ▼
 ┌────────────────────────┐    ┌──────────────────────────────┐
-│  Capa 4a: SAT Solver   │    │  Capa 4b: ILP Solver         │
-│  Verificación Acceso   │    │  Blast Radius Financiero     │
-│  → UNSAT = Imposible   │    │  → SAT = Coste máximo        │
+│  Layer 4a: SAT Solver  │    │  Layer 4b: ILP Solver        │
+│  Access Verification   │    │  Financial Blast Radius      │
+│  → UNSAT = Impossible  │    │  → SAT = Maximum cost        │
 └────────────────────────┘    └──────────────────────────────┘
 ```
 
 ---
 
-## 💻 Ejemplos de Uso
+## Usage Examples
 
-El paquete expone una interfaz natural para el usuario final:
+The package exposes a natural interface for the end user:
 
 ```python
 from engine import VerifierEngine
 
-engine = VerifierEngine(aws_profile="produccion")
+engine = VerifierEngine(aws_profile="production")
 
-# CASO 1: Verificación Formal de Acceso
-resultado = engine.ask("¿Pueden los desarrolladores junior borrar la base de datos de producción?")
-print(resultado.proof)
-# > ❌ UNSAT: Matemáticamente demostrado. El rol 'DevTeam-Junior'
-# > tiene un Deny explícito en 'rds:DeleteDBInstance'.
+# CASE 1: Formal Access Verification
+result = engine.ask("Can junior developers delete the production database?")
+print(result.proof)
+# > UNSAT: Mathematically proven. The role 'DevTeam-Junior'
+# > has an explicit Deny on 'rds:DeleteDBInstance'.
 
-# CASO 2: Optimización de Daño Financiero (Blast Radius)
-resultado = engine.ask("¿Cuál es el radio de explosión financiero si hackean al equipo de datos?")
-print(resultado.proof)
-# > ⚠️ SAT (Max-Cost): El daño máximo es de $45,200/día.
-# > Vector de ataque óptimo calculado por Z3:
-# > Levantar instancias p4d.24xlarge (límite de cuota regional) en us-east-1.
+# CASE 2: Financial Damage Optimization (Blast Radius)
+result = engine.ask("What is the financial blast radius if the data team is hacked?")
+print(result.proof)
+# > SAT (Max-Cost): Maximum damage is $45,200/day.
+# > Optimal attack vector calculated by Z3:
+# > Launch p4d.24xlarge instances (regional quota limit) in us-east-1.
 ```
 
 ---
 
-## 🛠️ Instalación y Ejecución
+## Installation and Execution
 
 ```bash
-# 1. Crear entorno virtual
+# 1. Create virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# 2. Instalar dependencias
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Ejecutar la demo (ambos módulos, datos mock locales)
+# 3. Run the demo (both modules, local mock data)
 python3 engine.py demo
 ```
 
 ---
 
-## 🔄 Sincronización con AWS Real (Cache-Refresh)
+## Synchronization with Real AWS (Cache-Refresh)
 
-En producción, la herramienta se conecta a las **APIs reales de AWS** para obtener precios y cuotas actualizadas de la cuenta del cliente.
+In production, the tool connects to **real AWS APIs** to obtain updated prices and quotas from the client account.
 
 > [!IMPORTANT]
-> La API de Pricing de AWS **solo existe en `us-east-1`** y `ap-south-1`.
-> El cliente siempre se conecta a `us-east-1` aunque consultes precios de instancias en España (`eu-south-2`) o Japón.
+> The AWS Pricing API **only exists in `us-east-1`** and `ap-south-1`.
+> The client always connects to `us-east-1` even if you query instance prices in Spain (`eu-south-2`) or Japan.
 
 ```bash
-# Sincronizar precios y cuotas desde AWS (requiere credenciales configuradas)
+# Sync prices and quotas from AWS (requires configured credentials)
 python3 engine.py sync-aws-data
 
-# Especificar regiones y perfil
-python3 engine.py sync-aws-data --regions us-east-1 eu-west-1 --profile produccion
+# Specify regions and profile
+python3 engine.py sync-aws-data --regions us-east-1 eu-west-1 --profile production
 ```
 
-Este comando:
-1. Conecta con **AWS Pricing API** (`us-east-1`) para obtener precios On-Demand reales
-2. Conecta con **AWS Service Quotas API** (por región) para obtener el límite de vCPUs (`L-1216C47A`)
-3. Sobrescribe `data/aws_prices_quotas.json` con datos **100% reales**
+This command:
+1. Connects to the **AWS Pricing API** (`us-east-1`) to obtain real On-Demand prices
+2. Connects to the **AWS Service Quotas API** (by region) to obtain the vCPU limit (`L-1216C47A`)
+3. Overwrites `data/aws_prices_quotas.json` with **100% real** data
 
-Después, el motor Z3 lee instantáneamente del JSON local — **determinista y en milisegundos**.
+Afterwards, the Z3 engine instantly reads from the local JSON — **deterministic and in milliseconds**.
 
 ---
 
-## 🔐 Configuración de AWS (Privilegio Mínimo)
+## AWS Configuration (Least Privilege)
 
-Para conectarse a AWS de forma segura, la herramienta usa un **usuario IAM dedicado con permisos de solo lectura**. Nunca uses tu usuario administrador.
+To connect to AWS securely, the tool uses a **dedicated IAM user with read-only permissions**. Never use your administrator user.
 
-### 1. Crear la política de permisos
+### 1. Create the permission policy
 
-El archivo [`docs/iam-axiom-readonly-policy.json`](docs/iam-axiom-readonly-policy.json) contiene la política mínima necesaria. Solo permite:
-- **`iam:List*` / `iam:Get*`** — Leer políticas IAM (nunca modificar)
-- **`pricing:GetProducts`** — Consultar precios públicos de EC2
-- **`servicequotas:Get*` / `servicequotas:List*`** — Consultar límites de la cuenta
+The file [`docs/iam-axiom-readonly-policy.json`](docs/iam-axiom-readonly-policy.json) contains the minimum necessary policy.
+
+### What the policy DOES allow:
+
+**IAM Role Audit (AuditIAMPolicies):**
+- View the list of all roles in the account (ListRoles).
+- View details of a specific role (GetRole).
+- Read which policies are attached to those roles, whether they are inline or AWS managed (GetRolePolicy, ListRolePolicies, ListAttachedRolePolicies).
+- View which instance profiles (used in EC2) are associated with a role.
+
+**Price Query (QueryAWSPrices):**
+- Use the AWS Pricing service to obtain details about costs and AWS product catalogs (GetProducts).
+
+**Limit/Quota Query (QueryAWSQuotas):**
+- Review the account's service limits (e.g., how many EC2 instances you can have) through the Service Quotas service.
+
+### What it DOES NOT allow (Implicit restrictions)
+
+It is important to understand that in AWS, what is not explicitly allowed is denied. Therefore, this policy:
+
+- **Does not allow Modifying anything:** It has no "Write" permissions. It cannot create roles, delete policies, change permissions, or modify quotas.
+- **Does not allow managing Users or Groups:** It only focuses on Roles. If you try to list the account's users (iam:ListUsers), it will fail.
+- **Does not allow using other services:** It does not have access to S3 (view files), EC2 (start machines), RDS (view databases), etc.
+- **Does not allow viewing real Billing:** Although it allows viewing the "price catalog," it does not allow viewing actual monthly bills or account consumption (it has no billing permissions).
 
 > [!CAUTION]
-> Esta política es **read-only**. La herramienta no puede crear, modificar ni eliminar ningún recurso en tu cuenta AWS.
+> This policy is **read-only**. The tool cannot create, modify, or delete any resource in your AWS account.
 
-### 2. Crear el usuario IAM dedicado
+### 2. Create the dedicated IAM user
 
 ```
 AWS Console → IAM → Users → Create user
 ```
 
-1. **Nombre:** `iam-axiom-auditor`
-2. **Acceso a consola:** ❌ No (solo acceso programático)
-3. **Permisos:** `Attach policies directly` → `Create policy` → pegar el contenido de [`iam-axiom-readonly-policy.json`](docs/iam-axiom-readonly-policy.json)
-4. **Crear Access Keys:** Pestaña `Security credentials` → `Create access key` → seleccionar `Command Line Interface (CLI)`
+1. **Name:** `iam-axiom-auditor`
+2. **Console access:** No (programmatic access only)
+3. **Permissions:** `Attach policies directly` → `Create policy` → paste the content of [`iam-axiom-readonly-policy.json`](docs/iam-axiom-readonly-policy.json)
+4. **Create Access Keys:** `Security credentials` tab → `Create access key` → select `Command Line Interface (CLI)`
 
-AWS te dará un **Access Key ID** y un **Secret Access Key**.
+AWS will give you an **Access Key ID** and a **Secret Access Key**.
 
-### 3. Configurar el perfil local
+### 3. Configure the local profile
 
 ```bash
 aws configure --profile axiom-auditor
-# AWS te pedirá:
+# AWS will ask for:
 #   AWS Access Key ID:     ********
 #   AWS Secret Access Key: ********
 #   Default region name:   us-east-1
 #   Default output format: json
 ```
 
-### 4. Usar el perfil en la herramienta
+### 4. Use the profile in the tool
 
 ```bash
-# Sincronizar con el perfil de mínimos privilegios
+# Sync with the least privilege profile
 python3 engine.py sync-aws-data --profile axiom-auditor --regions us-east-1 eu-west-1
 ```
 
-Internamente, `boto3` usa ese perfil aislado:
+Internally, `boto3` uses that isolated profile:
 
 ```python
 session = boto3.Session(profile_name='axiom-auditor')
@@ -200,48 +220,48 @@ iam_client = session.client('iam')
 
 ---
 
-## 📂 Estructura del Proyecto
+## Project Structure
 
 ```
 iam-axiom-verifier/
-├── .env.example                 # Plantilla para API Keys (OpenAI/Anthropic)
-├── .gitignore                   # Ignora /venv, __pycache__, .env y cachés locales
-├── LICENSE                      # Licencia del proyecto (ej. MIT o Apache 2.0)
-├── README.md                    # Documentación principal
-├── requirements.txt             # Dependencias estrictas (boto3, z3-solver, pydantic)
-├── engine.py                    # Entrypoint: Fachada principal y CLI
+├── .env.example                 # Template for API Keys (OpenAI/Anthropic)
+├── .gitignore                   # Ignores /venv, __pycache__, .env and local caches
+├── LICENSE                      # Project license (e.g., MIT or Apache 2.0)
+├── README.md                    # Main documentation
+├── requirements.txt             # Strict dependencies (boto3, z3-solver, pydantic)
+├── engine.py                    # Entrypoint: Main facade and CLI
 │
-├── src/                         # 🧠 Código fuente desacoplado
+├── src/                         # Source code
 │   ├── __init__.py
-│   ├── models.py                # Contratos de Datos (Pydantic v2)
-│   ├── aws/                     # Capa 2: Fetcher Determinista
+│   ├── models.py                # Data Contracts (Pydantic v2)
+│   ├── aws/                     # Layer 2: Deterministic Fetcher
 │   │   ├── __init__.py
-│   │   ├── fetcher.py           # Cliente real (Pricing + Quotas con boto3)
-│   │   └── parser.py            # Parsea políticas IAM a objetos tipados
-│   ├── core/                    # Capas 3-4: Inferencia Matemática
+│   │   ├── fetcher.py           # Real client (Pricing + Quotas with boto3)
+│   │   └── parser.py            # Parses IAM policies to typed objects
+│   ├── core/                    # Layers 3-4: Mathematical Inference
 │   │   ├── __init__.py
-│   │   └── smt_solver.py        # Motores SAT e ILP (Z3)
-│   └── llm/                     # Capa 1: IA Probabilística
+│   │   └── smt_solver.py        # SAT and ILP engines (Z3)
+│   └── llm/                     # Layer 1: Probabilistic AI
 │       ├── __init__.py
-│       └── router.py            # Enrutador Semántico (Traductor LLM)
+│       └── router.py            # Semantic Router (LLM Translator)
 │
-├── data/                        # 💾 Caché local y Mocks para desarrollo
+├── data/                        # Local cache and Mocks for development
 │   ├── policy_devteam.json      
 │   ├── policy_dataeng.json      
 │   └── aws_prices_quotas.json   
 │
-└── docs/                        # 📄 Documentación técnica y seguridad
+└── docs/                        # Technical and security documentation
     └── iam-axiom-readonly-policy.json
 ```
 
 ---
 
-## 🔧 Stack Tecnológico
+## Tech Stack
 
-| Componente | Tecnología |
+| Component | Technology |
 |---|---|
-| **Core Lógico** | `z3-solver` (Microsoft Research) |
-| **Integración Cloud** | `boto3` (AWS SDK) |
-| **Enrutador IA** | OpenAI API / Anthropic API |
-| **Contratos de Datos** | `pydantic` v2 |
+| **Logic Core** | `z3-solver` (Microsoft Research) |
+| **Cloud Integration** | `boto3` (AWS SDK) |
+| **AI Router** | OpenAI API / Anthropic API |
+| **Data Contracts** | `pydantic` v2 |
 

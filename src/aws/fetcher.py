@@ -1,19 +1,19 @@
 """
-aws_fetcher.py — Cliente Real de AWS (Patrón Cache-Refresh)
+aws_fetcher.py — Real AWS Client (Cache-Refresh Pattern)
 
-Conecta con las APIs reales de AWS para sincronizar datos:
-  1. AWS Pricing API  → Precios On-Demand de instancias EC2
-  2. Service Quotas   → Límite de vCPUs de la cuenta
+Connects to real AWS APIs to synchronize data:
+  1. AWS Pricing API  → On-Demand prices for EC2 instances
+  2. Service Quotas   → Account vCPU limits
 
-IMPORTANTE:
-  - La API de Pricing de AWS solo existe en us-east-1 y ap-south-1.
-    El cliente SIEMPRE se conecta a us-east-1 sin importar la región
-    de las instancias consultadas.
-  - Los datos se cachean en data/aws_prices_quotas.json para que
-    el motor Z3 los lea instantáneamente sin llamar a AWS cada vez.
+IMPORTANT:
+  - The AWS Pricing API only exists in us-east-1 and ap-south-1.
+    The client ALWAYS connects to us-east-1 regardless of the region
+    of the queried instances.
+  - Data is cached in data/aws_prices_quotas.json so that
+    the Z3 engine can read them instantly without calling AWS every time.
 
-Uso:
-    python engine.py sync-aws-data                    # Regiones por defecto
+Usage:
+    python engine.py sync-aws-data                    # Default regions
     python engine.py sync-aws-data --regions us-east-1 eu-west-1
 """
 
@@ -22,11 +22,11 @@ import os
 import boto3
 from typing import List, Dict, Any, Optional
 
-# Directorio de datos
+# Data directory
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data")
 CACHE_FILE = os.path.join(DATA_DIR, "aws_prices_quotas.json")
 
-# Tipos de instancia comunes a consultar por defecto
+# Common instance types to query by default
 DEFAULT_INSTANCE_TYPES = [
     "t3.micro",
     "t3.medium",
@@ -40,8 +40,8 @@ DEFAULT_INSTANCE_TYPES = [
     "x1e.32xlarge",
 ]
 
-# Mapeo de código de región AWS → nombre legible para la API de Pricing
-# La API de Pricing usa "location" (nombre humano), no el código de región
+# Mapping of AWS region code → human-readable name for the Pricing API
+# The Pricing API uses "location" (human name), not the region code
 REGION_DISPLAY_NAMES = {
     "us-east-1": "US East (N. Virginia)",
     "us-east-2": "US East (Ohio)",
@@ -60,7 +60,7 @@ REGION_DISPLAY_NAMES = {
     "sa-east-1": "South America (Sao Paulo)",
 }
 
-# Código de cuota de AWS para "Running On-Demand Standard instances" (vCPUs)
+# AWS quota code for "Running On-Demand Standard instances" (vCPUs)
 VCPU_QUOTA_CODE = "L-1216C47A"
 
 
@@ -70,13 +70,13 @@ def _get_ec2_price(
     region_display_name: str,
 ) -> Optional[float]:
     """
-    Obtiene el precio On-Demand por hora de una instancia EC2.
+    Gets the hourly On-Demand price of an EC2 instance.
 
-    NOTA: El cliente de pricing SIEMPRE debe estar conectado a us-east-1.
-    El parámetro 'location' es el nombre legible de la región (ej: "EU (Ireland)"),
-    NO el código de región (ej: "eu-west-1").
+    NOTE: The pricing client MUST always be connected to us-east-1.
+    The 'location' parameter is the human-readable region name (e.g., "EU (Ireland)"),
+    NOT the region code (e.g., "eu-west-1").
     """
-    filtros = [
+    filters = [
         {"Type": "TERM_MATCH", "Field": "ServiceCode", "Value": "AmazonEC2"},
         {"Type": "TERM_MATCH", "Field": "instanceType", "Value": instance_type},
         {"Type": "TERM_MATCH", "Field": "location", "Value": region_display_name},
@@ -87,28 +87,28 @@ def _get_ec2_price(
     ]
 
     try:
-        respuesta = pricing_client.get_products(
+        response = pricing_client.get_products(
             ServiceCode="AmazonEC2",
-            Filters=filtros,
+            Filters=filters,
         )
     except Exception as e:
-        print(f"    ⚠️  Error consultando precio de {instance_type}: {e}")
+        print(f"    Error querying price for {instance_type}: {e}")
         return None
 
-    if not respuesta.get("PriceList"):
+    if not response.get("PriceList"):
         return None
 
-    # AWS devuelve un JSON anidado (string dentro de dict)
-    datos_precio = json.loads(respuesta["PriceList"][0])
+    # AWS returns a nested JSON (string inside dict)
+    price_data = json.loads(response["PriceList"][0])
 
-    # Navegar el laberinto del JSON para extraer el precio On-Demand
+    # Navigate the JSON maze to extract the On-Demand price
     try:
-        terms = datos_precio["terms"]["OnDemand"]
-        id_term = list(terms.keys())[0]
-        price_dimensions = terms[id_term]["priceDimensions"]
-        id_dimension = list(price_dimensions.keys())[0]
-        precio_por_hora = float(price_dimensions[id_dimension]["pricePerUnit"]["USD"])
-        return precio_por_hora
+        terms = price_data["terms"]["OnDemand"]
+        term_id = list(terms.keys())[0]
+        price_dimensions = terms[term_id]["priceDimensions"]
+        dimension_id = list(price_dimensions.keys())[0]
+        price_per_hour = float(price_dimensions[dimension_id]["pricePerUnit"]["USD"])
+        return price_per_hour
     except (KeyError, IndexError):
         return None
 
@@ -117,29 +117,29 @@ def _get_instance_vcpus(
     ec2_client,
     instance_type: str,
 ) -> Optional[int]:
-    """Obtiene el número de vCPUs de un tipo de instancia vía DescribeInstanceTypes."""
+    """Gets the number of vCPUs for an instance type via DescribeInstanceTypes."""
     try:
         resp = ec2_client.describe_instance_types(InstanceTypes=[instance_type])
         if resp["InstanceTypes"]:
             return resp["InstanceTypes"][0]["VCpuInfo"]["DefaultVCpus"]
     except Exception as e:
-        print(f"    ⚠️  Error obteniendo vCPUs de {instance_type}: {e}")
+        print(f"    Error obtaining vCPUs for {instance_type}: {e}")
     return None
 
 
 def _get_vcpu_quota(quotas_client) -> Optional[float]:
     """
-    Obtiene la cuota de vCPUs On-Demand Standard de la cuenta.
-    Código de cuota: L-1216C47A (Running On-Demand Standard instances).
+    Gets the account's On-Demand Standard vCPU quota.
+    Quota code: L-1216C47A (Running On-Demand Standard instances).
     """
     try:
-        respuesta = quotas_client.get_service_quota(
+        response = quotas_client.get_service_quota(
             ServiceCode="ec2",
             QuotaCode=VCPU_QUOTA_CODE,
         )
-        return respuesta["Quota"]["Value"]
+        return response["Quota"]["Value"]
     except Exception as e:
-        print(f"    ⚠️  Error obteniendo cuota de vCPUs: {e}")
+        print(f"    Error obtaining vCPU quota: {e}")
         return None
 
 
@@ -149,18 +149,18 @@ def sync_aws_data(
     aws_profile: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Conecta con AWS, descarga precios reales y cuotas, y actualiza
-    el archivo data/aws_prices_quotas.json (caché local).
+    Connects to AWS, downloads real prices and quotas, and updates
+    the data/aws_prices_quotas.json file (local cache).
 
-    Patrón Cache-Refresh:
-      - Se ejecuta una vez con: python engine.py sync-aws-data
-      - Los datos quedan cacheados en disco
-      - El motor Z3 lee del JSON local (respuesta en milisegundos)
+    Cache-Refresh Pattern:
+      - Executed once with: python engine.py sync-aws-data
+      - Data is cached on disk
+      - The Z3 engine reads from the local JSON (response in milliseconds)
 
     Args:
-        regions: Lista de códigos de región (ej: ["us-east-1", "eu-west-1"])
-        instance_types: Tipos de instancia a consultar
-        aws_profile: Nombre del perfil de AWS CLI a usar
+        regions: List of region codes (e.g., ["us-east-1", "eu-west-1"])
+        instance_types: Instance types to query
+        aws_profile: AWS CLI profile name to use
     """
     if regions is None:
         regions = ["us-east-1"]
@@ -168,47 +168,47 @@ def sync_aws_data(
         instance_types = DEFAULT_INSTANCE_TYPES
 
     print("\n" + "=" * 60)
-    print("  🔄 Sincronizando datos reales desde AWS")
+    print("  Synchronizing real data from AWS")
     print("=" * 60)
 
-    # Crear sesión con el perfil indicado
+    # Create session with the specified profile
     session_kwargs = {}
     if aws_profile and aws_profile != "default":
         session_kwargs["profile_name"] = aws_profile
     session = boto3.Session(**session_kwargs)
 
-    # ── 1. Cliente de Pricing (SIEMPRE us-east-1) ────────────────
-    print("\n  [1/3] 💲 Conectando a AWS Pricing API (us-east-1)...")
+    # --- 1. Pricing Client (ALWAYS us-east-1) ---
+    print("\n  [1/3] Connecting to AWS Pricing API (us-east-1)...")
     pricing_client = session.client("pricing", region_name="us-east-1")
 
-    # ── 2. Obtener precios y vCPUs de cada instancia ─────────────
-    print(f"  [2/3] 📊 Consultando precios de {len(instance_types)} tipos de instancia...")
+    # --- 2. Get prices and vCPUs for each instance ---
+    print(f"  [2/3] Querying prices for {len(instance_types)} instance types...")
 
-    # Usamos la primera región para obtener metadata de instancias
+    # We use the first region to obtain instance metadata
     primary_region = regions[0]
     ec2_client = session.client("ec2", region_name=primary_region)
     region_display = REGION_DISPLAY_NAMES.get(primary_region, primary_region)
 
     resources = []
-    for itype in instance_types:
-        print(f"    → {itype}...", end=" ", flush=True)
+    for instance_type in instance_types:
+        print(f"    → {instance_type}...", end=" ", flush=True)
 
-        precio = _get_ec2_price(pricing_client, itype, region_display)
-        vcpus = _get_instance_vcpus(ec2_client, itype)
+        price = _get_ec2_price(pricing_client, instance_type, region_display)
+        vcpus = _get_instance_vcpus(ec2_client, instance_type)
 
-        if precio is not None and vcpus is not None:
+        if price is not None and vcpus is not None:
             resources.append({
-                "id": itype,
+                "id": instance_type,
                 "vcpu": vcpus,
-                "cost_per_hour": round(precio, 4),
-                "max_qty": 10,  # Valor conservador por defecto
+                "cost_per_hour": round(price, 4),
+                "max_qty": 10,  # Conservative default value
             })
-            print(f"${precio:.4f}/h, {vcpus} vCPUs ✓")
+            print(f"${price:.4f}/h, {vcpus} vCPUs OK")
         else:
-            print(f"no disponible en {primary_region} ✗")
+            print(f"not available in {primary_region}")
 
-    # ── 3. Obtener cuotas por región ─────────────────────────────
-    print(f"\n  [3/3] 🔒 Consultando Service Quotas por región...")
+    # --- 3. Get quotas per region ---
+    print(f"\n  [3/3] Querying Service Quotas per region...")
 
     regional_quotas = {}
     global_quota = 0
@@ -222,15 +222,15 @@ def sync_aws_data(
             quota_int = int(quota)
             regional_quotas[region] = quota_int
             global_quota = max(global_quota, quota_int)
-            print(f"{quota_int} vCPUs ✓")
+            print(f"{quota_int} vCPUs OK")
         else:
-            regional_quotas[region] = 64  # Default seguro de AWS
-            print(f"usando default (64 vCPUs)")
+            regional_quotas[region] = 64  # Safe AWS default
+            print(f"using default (64 vCPUs)")
 
     if global_quota == 0:
         global_quota = 64
 
-    # ── Construir y guardar el JSON ──────────────────────────────
+    # --- Construct and save the JSON ---
     data = {
         "global_vcpu_quota": global_quota,
         "regional_quotas": regional_quotas,
@@ -246,10 +246,10 @@ def sync_aws_data(
     with open(CACHE_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
-    print(f"\n  ✅ Datos sincronizados y guardados en data/aws_prices_quotas.json")
-    print(f"     → {len(resources)} instancias con precios reales")
-    print(f"     → Cuota máxima: {global_quota} vCPUs")
-    print(f"     → Regiones: {regions}")
+    print(f"\n  Data synchronized and saved in data/aws_prices_quotas.json")
+    print(f"     → {len(resources)} instances with real prices")
+    print(f"     → Maximum quota: {global_quota} vCPUs")
+    print(f"     → Regions: {regions}")
     print("=" * 60)
 
     return data

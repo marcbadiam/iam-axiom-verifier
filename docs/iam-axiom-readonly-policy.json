@@ -2,7 +2,7 @@
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "AuditarPoliticasIAM",
+            "Sid": "AuditIAMPolicies",
             "Effect": "Allow",
             "Action": [
                 "iam:ListRoles",
@@ -15,7 +15,7 @@
             "Resource": "*"
         },
         {
-            "Sid": "ConsultarPreciosAWS",
+            "Sid": "QueryAWSPrices",
             "Effect": "Allow",
             "Action": [
                 "pricing:GetProducts"
@@ -23,7 +23,7 @@
             "Resource": "*"
         },
         {
-            "Sid": "ConsultarLimitesAWS",
+            "Sid": "QueryAWSQuotas",
             "Effect": "Allow",
             "Action": [
                 "servicequotas:GetServiceQuota",
