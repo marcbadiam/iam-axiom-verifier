@@ -23,7 +23,7 @@ import boto3
 from typing import List, Dict, Any, Optional
 
 # Directorio de datos
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data")
 CACHE_FILE = os.path.join(DATA_DIR, "aws_prices_quotas.json")
 
 # Tipos de instancia comunes a consultar por defecto

@@ -9,7 +9,7 @@ En este repositorio: mock determinista para conectar con el motor formal.
 """
 
 import os
-from models import LLMIntent, IntentType
+from src.models import LLMIntent, IntentType
 
 
 def translate_query(query: str) -> LLMIntent:

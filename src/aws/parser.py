@@ -14,10 +14,10 @@ Funciones:
 import json
 import os
 from typing import Dict, Any, List, Tuple, Optional
-from models import PolicyStatement, ResourceData
+from src.models import PolicyStatement, ResourceData
 
 # Directorio de datos mock
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data")
 
 # Mapeo de nombres de rol a archivos de política mock
 ROLE_POLICY_MAP = {

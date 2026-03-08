@@ -204,19 +204,34 @@ iam_client = session.client('iam')
 
 ```
 iam-axiom-verifier/
-├── engine.py            # VerifierEngine: fachada principal y CLI
-├── aws_fetcher.py       # Cliente real de AWS (Pricing + Quotas)
-├── llm_translator.py    # Capa 1: Enrutador Semántico (LLM)
-├── parser.py            # Capa 2: Fetcher Determinista (datos locales)
-├── smt_solver.py        # Capas 3-4: Compilación + Inferencia (Z3)
-├── models.py            # Contratos de Datos (Pydantic v2)
-├── requirements.txt     # Dependencias
-├── data/
-│   ├── policy_devteam.json      # Política IAM DevTeam-Junior
-│   ├── policy_dataeng.json      # Política IAM DataEng-Team
-│   └── aws_prices_quotas.json   # Precios y cuotas (mock o sync real)
-└── docs/
-    └── iam-axiom-readonly-policy.json  # Política IAM de mínimos privilegios
+├── .env.example                 # Plantilla para API Keys (OpenAI/Anthropic)
+├── .gitignore                   # Ignora /venv, __pycache__, .env y cachés locales
+├── LICENSE                      # Licencia del proyecto (ej. MIT o Apache 2.0)
+├── README.md                    # Documentación principal
+├── requirements.txt             # Dependencias estrictas (boto3, z3-solver, pydantic)
+├── engine.py                    # Entrypoint: Fachada principal y CLI
+│
+├── src/                         # 🧠 Código fuente desacoplado
+│   ├── __init__.py
+│   ├── models.py                # Contratos de Datos (Pydantic v2)
+│   ├── aws/                     # Capa 2: Fetcher Determinista
+│   │   ├── __init__.py
+│   │   ├── fetcher.py           # Cliente real (Pricing + Quotas con boto3)
+│   │   └── parser.py            # Parsea políticas IAM a objetos tipados
+│   ├── core/                    # Capas 3-4: Inferencia Matemática
+│   │   ├── __init__.py
+│   │   └── smt_solver.py        # Motores SAT e ILP (Z3)
+│   └── llm/                     # Capa 1: IA Probabilística
+│       ├── __init__.py
+│       └── router.py            # Enrutador Semántico (Traductor LLM)
+│
+├── data/                        # 💾 Caché local y Mocks para desarrollo
+│   ├── policy_devteam.json      
+│   ├── policy_dataeng.json      
+│   └── aws_prices_quotas.json   
+│
+└── docs/                        # 📄 Documentación técnica y seguridad
+    └── iam-axiom-readonly-policy.json
 ```
 
 ---

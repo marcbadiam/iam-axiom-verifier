@@ -15,7 +15,7 @@ Contiene DOS solucionadores formales:
 import z3
 import fnmatch
 from typing import List, Dict, Any, Optional
-from models import PolicyStatement, ResourceData, VerifierResult
+from src.models import PolicyStatement, ResourceData, VerifierResult
 
 
 # ─── Módulo 1: Verificador Formal de Accesos (SAT Solver) ───────────

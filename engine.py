@@ -14,16 +14,16 @@ Uso:
 
 import sys
 import json
-from models import IntentType, LLMIntent, VerifierResult
-from llm_translator import translate_query
-from parser import (
+from src.models import IntentType, LLMIntent, VerifierResult
+from src.llm.router import translate_query
+from src.aws.parser import (
     fetch_iam_policy,
     fetch_prices_and_quotas,
     parse_policy_statements,
     parse_resources,
     extract_allowed_instances,
 )
-from smt_solver import verify_access, optimize_blast_radius
+from src.core.smt_solver import verify_access, optimize_blast_radius
 
 
 class VerifierEngine:
@@ -164,7 +164,7 @@ def _run_demo():
 
 def _run_sync(args):
     """Sincroniza datos reales desde AWS (Cache-Refresh)."""
-    from aws_fetcher import sync_aws_data
+    from src.aws.fetcher import sync_aws_data
 
     regions = args.regions if args.regions else ["us-east-1"]
     profile = args.profile if args.profile else None
