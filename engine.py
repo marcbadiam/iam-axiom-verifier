@@ -7,14 +7,17 @@ Orchestrates 4 offline layers: Intent (LLM) → Local State (JSON) → Compilati
 
 Usage:
     from engine import VerifierEngine
-    engine = VerifierEngine(data_dir="./data")
+    engine = VerifierEngine()
     result = engine.ask("Can junior devs delete the DB?")
     print(result.proof)
 """
 
+import os
 import sys
 import json
 from dotenv import load_dotenv
+
+DEFAULT_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src", "data")
 
 load_dotenv()
 from src.models import IntentType, LLMIntent, VerifierResult
@@ -38,7 +41,7 @@ class VerifierEngine:
       - Module 2: Financial Blast Radius Optimization (ILP Solver)
     """
 
-    def __init__(self, data_dir: str = "./data"):
+    def __init__(self, data_dir: str = DEFAULT_DATA_DIR):
         """
         Initializes the engine.
         Reads deterministic AWS state directly from local JSON files.
@@ -165,7 +168,7 @@ def main():
     )
     parser.add_argument(
         "--data-dir",
-        default="./data",
+        default=DEFAULT_DATA_DIR,
         help="Directory containing local AWS JSON fixtures"
     )
     

@@ -1,0 +1,23 @@
+{
+  "RoleName": "DevTeam-Junior",
+  "PolicyDocument": {
+    "Statement": [
+      {
+        "Sid": "AllowAllRDS",
+        "Effect": "Allow",
+        "Action": ["rds:*"],
+        "Resource": "*"
+      },
+      {
+        "Sid": "BlockDestructiveActions",
+        "Effect": "Deny",
+        "Action": [
+          "rds:Drop*",
+          "rds:DeleteDBCluster",
+          "rds:RebootDBInstance"
+        ],
+        "Resource": "*"
+      }
+    ]
+  }
+}

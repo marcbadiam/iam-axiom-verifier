@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "iam-axiom-verifier"
-version = "0.1.0b1"
+version = "0.1.0b2"
 description = "A Neuro-Symbolic Inference Engine for AWS Security & FinOps — combines LLM routing with Z3 SMT/ILP solvers for formal IAM verification and financial blast radius analysis."
 readme = "README.md"
 license = "MIT"
@@ -48,7 +48,7 @@ iam-axiom-verifier = "engine:main"
 
 [tool.setuptools]
 py-modules = ["engine"]
-packages = ["src", "src.aws", "src.core", "src.llm"]
+packages = ["src", "src.aws", "src.core", "src.llm", "src.data"]
 
 [tool.setuptools.package-data]
 "*" = ["*.json"]

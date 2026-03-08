@@ -75,7 +75,7 @@ The system enforces a **strict boundary** between probabilistic reasoning (LLM) 
 To adhere to strict security practices, data extraction is completely decoupled from the mathematical inference engine. 
 
 ### Step 1: Extract & Freeze AWS State (Requires Credentials)
-First, an auditor uses the standalone extraction tool. This connects to AWS via read-only APIs, downloads the policies and quotas, and freezes them into local JSON files inside the data/ directory.
+First, an auditor uses the standalone extraction tool. This connects to AWS via read-only APIs, downloads the policies and quotas, and freezes them into local JSON files inside the `src/data/` directory.
 
 python tools/sync_aws.py --profile axiom-auditor --regions us-east-1 eu-west-1
 
@@ -87,7 +87,7 @@ The engine is **provider-agnostic**. Copy the `.env.example` file to `.env` and 
 Once the data is frozen and the router is configured, you run the engine. The math engine strictly reads the local JSON state and applies mathematical proofs.
 
 # Run the automated demonstration suite
-python engine.py demo
+iam-axiom-verifier demo
 
 
 ---
@@ -99,7 +99,7 @@ The package exposes an interactive natural language interface. You can ask compl
 **CASE 1: Formal Access Verification (Specific ARNs)**
 You can query if a role has access to specific cloud resources:
 
-python engine.py ask "Can junior developers delete the instance arn:aws:ec2:us-east-1:123456789012:instance/i-prod999?"
+iam-axiom-verifier ask "Can junior developers delete the instance arn:aws:ec2:us-east-1:123456789012:instance/i-prod999?"
 
 # > ❌ UNSAT: Mathematically proven. The role does not have any Allow 
 # > for 'ec2:TerminateInstances' on that specific ARN.
@@ -108,7 +108,7 @@ python engine.py ask "Can junior developers delete the instance arn:aws:ec2:us-e
 **CASE 2: Financial Damage Optimization (Blast Radius)**
 Ask the engine to calculate the worst-case scenario if a role is compromised:
 
-python engine.py ask "If a hacker gets into the DataEng-Team account, what's the worst financial damage they can do?"
+iam-axiom-verifier ask "If a hacker gets into the DataEng-Team account, what's the worst financial damage they can do?"
 
 # > ⚠️ SAT (Max-Cost): Maximum damage is $13,729/day ($572.04/hour).
 # > Optimal attack vector calculated by Z3:
@@ -158,7 +158,7 @@ iam-axiom-verifier/
 ├── engine.py                    # Entrypoint: Offline Inference Engine & CLI
 │
 ├── tools/                       # Utilities requiring internet/credentials
-│   └── sync_aws.py              # Connects to AWS & freezes state to /data
+│   └── sync_aws.py              # Connects to AWS & freezes state to /src/data
 │
 ├── src/                         # Core Source Code
 │   ├── __init__.py
@@ -174,10 +174,10 @@ iam-axiom-verifier/
 │       ├── __init__.py
 │       └── router.py            # Semantic Router (LLM Translator)
 │
-├── data/                        # Local cache and frozen Mocks
-│   ├── policy_devteam.json      
-│   ├── policy_dataeng.json      
-│   └── aws_prices_quotas.json   
+│   ├── data/                    # Local cache and frozen Mocks
+│   │   ├── policy_devteam.json      
+│   │   ├── policy_dataeng.json      
+│   │   └── aws_prices_quotas.json   
 │
 └── docs/                        # Technical and security documentation
     └── iam-axiom-readonly-policy.json
