@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "iam-axiom-verifier"
-version = "0.1.0b2"
+version = "0.1.0b3"
 description = "A Neuro-Symbolic Inference Engine for AWS Security & FinOps — combines LLM routing with Z3 SMT/ILP solvers for formal IAM verification and financial blast radius analysis."
 readme = "README.md"
 license = "MIT"
