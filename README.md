@@ -8,10 +8,18 @@ Instead of relying on regular expressions, heuristics, or AI hallucinations, thi
 
 ---
 
+## 🚨 Disclaimer - Proof of Concept (PoC)
+
+> [!CAUTION]
+> This code/application is a proof of concept. It is NOT ready for production. It may contain bugs and SEVERE security vulnerabilities. Its purpose is purely demonstrative and/or experimental.
+
+---
+
 ## 🚨 The Problem
 
 - **AI Hallucinates:** LLMs cannot reliably reason about complex permission graphs or service quotas. An error in a security audit is **unacceptable**.
 - **Static Calculators Fail:** Calculating the financial "Blast Radius" of a compromised credential is not a simple summation; it is a **combinatorial optimization problem (NP-Hard)** crossed with AWS quota constraints and IAM boolean logic.
+- **Transitive Depth:** While the ultimate goal is to implement "infinite depth" reachability analysis (detecting multi-hop privilege escalation), the current implementation operates at **Depth = 1**. It evaluates direct access based on exact permissions assigned to the specific entity.
 
 ---
 
@@ -214,11 +222,11 @@ pip install --pre iam-axiom-verifier
 
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for the full text.
 
----
-
 ## ⚠️ Disclaimer
 
 > [!CAUTION]
+> This code/application is a proof of concept. It is NOT ready for production. It may contain bugs and SEVERE security vulnerabilities. Its purpose is purely demonstrative and/or experimental.
+> 
 > **USE AT YOUR OWN RISK.** This software is provided **"AS IS"**, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement. See the [MIT License](LICENSE) for full terms.
 
 **By using this software, you acknowledge and agree that:**
